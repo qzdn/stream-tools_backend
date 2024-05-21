@@ -13,15 +13,14 @@ def get_tracks_data(format, data):
     album = data["album"]["#text"]
     cover = data["image"][3]["#text"]
 
-    match (format):
-        case "txt":
-            return f"{artist} - {track}"
-        case "json":
-            return {
-                "nowplaying": {
-                    "artist": artist,
-                    "track": track,
-                    "album": album,
-                    "cover": cover,
-                }
+    if format == "txt":
+        return f"{artist} - {track}"
+    elif format == "json":
+        return {
+            "nowplaying": {
+                "artist": artist,
+                "track": track,
+                "album": album,
+                "cover": cover,
             }
+        }

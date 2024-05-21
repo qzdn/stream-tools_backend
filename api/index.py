@@ -1,106 +1,91 @@
 import os
-from flask import Flask, request
+from fastapi import FastAPI, Response
+from fastapi.websockets import WebSocket
 from dotenv import load_dotenv
 
-from api.services.hltb import request_to_hltb
-from api.services.lastfm import get_tracks_data, request_to_lastfm
-from api.services.openweathermap import get_weather_data, request_to_openweathermap
+from api.mongodb.connection import select_from_mongo
+from api.mongodb.models.RequestModel import User
+from api.services.lastfm.lastfm import request_to_lastfm, get_tracks_data
+from api.services.openweathermap.openweathermap import (
+    request_to_openweathermap,
+    get_weather_data,
+)
+from api.services.hltb.hltb import request_to_hltb
 
-
-app = Flask(__name__)
+app = FastAPI()
 
 load_dotenv()
 LASTFM_API_KEY = os.getenv("LASTFM_API_KEY")
 OPENWEATHERMAP_API_KEY = os.getenv("OPENWEATHERMAP_API_KEY")
 
 
-@app.route("/", methods=["GET"])
-def root():
-    return {
-        "methods": {
-            "lastfm": "/lastfm/<string:username>?format=<string:format>",
-            "weather": "/weather/<string:city>?format=<string:format>",
-            "hltb": "/hltb/<string:game>?year=<string:year>&format=<string:format>",
-        }
-    }
+@app.get("/")
+async def root():
+    return {"message": "See /docs for info"}
 
 
-@app.route("/song-requests", methods=["GET", "POST"])
-def song_requests():
-    return {
-        "message": "TBD",
-    }
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
 
 
-@app.route("/lastfm/<string:username>", methods=["GET"])
-def get_nowplaying_lastfm_track(username):
-    format = request.args.get("format") or "txt"
+@app.get("/song-requests/", response_model=User, status_code=200)
+async def get_song_requests(response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return select_from_mongo()
+
+
+@app.get("/lastfm/{username}")
+async def get_nowplaying_lastfm_track(username, format: str = "txt"):
     data = request_to_lastfm(username, LASTFM_API_KEY)
 
     if not data:
-        match (format):
-            case "txt":
-                return "Ошибка получения данных"
-            case "json":
-                return {"message": "Ошибка получения данных"}
+        if format == "txt":
+            return "Ошибка получения данных"
+        elif format == "json":
+            return {"message": "Ошибка получения данных"}
 
     if "error" in data:
-        match (format):
-            case "txt":
-                return data["message"]
-            case "json":
-                return {"message": data["message"]}
+        if format == "txt":
+            return data["message"]
+        elif format == "json":
+            return {"message": data["message"]}
 
     if "@attr" not in data["recenttracks"]["track"][0]:
-        match (format):
-            case "txt":
-                return "Сейчас ничего не скробблится"
-            case "json":
-                return {"nowplaying": None}
+        if format == "txt":
+            return "Сейчас ничего не скробблится"
+        elif format == "json":
+            return {"nowplaying": None}
 
-    match (format):
-        case "txt" | "json":
-            return get_tracks_data(format, data["recenttracks"]["track"][0])
-        case _:
-            return "Некорректные параметры запроса"
+    if format == "txt" or "json":
+        return get_tracks_data(format, data["recenttracks"]["track"][0])
+    else:
+        return "Некорректные параметры запроса"
 
 
-@app.route("/weather/<string:city>", methods=["GET"])
-def get_current_weather(city):
-    format = request.args.get("format") or "txt"
+@app.get("/weather/{city}")
+async def get_current_weather(city, format: str = "txt"):
     request_result = request_to_openweathermap(city, OPENWEATHERMAP_API_KEY)
 
     if request_result["cod"] != 200:
-        match (format):
-            case "txt":
-                return request_result["message"]
-            case "json":
-                return {"message": request_result["message"]}
+        if format == "txt":
+            return request_result["message"]
+        elif format == "json":
+            return {"message": request_result["message"]}
 
     if "weather" in request_result and "main" in request_result:
-        match (format):
-            case "txt" | "json":
-                return get_weather_data(format, request_result)
-            case _:
-                return "Некорректные параметры запроса"
-
-
-@app.route("/hltb/<string:game>", methods=["GET"])
-def get_hltb_game(game):
-    year = request.args.get("year") or None
-    format = request.args.get("format") or "txt"
-
-    if "*" in game and not game.startswith("*"):
-        parts = game.split("*")
-        game = parts[0]
-        year = parts[1]
-
-    match (format):
-        case "txt" | "json":
-            return request_to_hltb(game, year, format)
-        case _:
+        if format == "txt" or "json":
+            return get_weather_data(format, request_result)
+        else:
             return "Некорректные параметры запроса"
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=3000, debug=True)
+@app.get("/hltb/{game}")
+async def get_hltb_game(game, year: int = None, format: str = "txt"):
+    if format == "txt" or "json":
+        return request_to_hltb(game, year, format)
+    else:
+        return "Некорректные параметры запроса"

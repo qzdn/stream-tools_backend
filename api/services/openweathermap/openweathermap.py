@@ -18,20 +18,19 @@ def get_weather_data(format, data):
     humidity = data["main"]["humidity"]
     pressure = data["main"]["pressure"]
 
-    match (format):
-        case "txt":
-            return f"{name} - сейчас {weather_description}. Температура {round(temp)}°C (по ощущению {round(temp_feel)}°C). Ветер - {wind_degrees_to_direction(wind_degree)}, {wind_speed} м/с. Влажность - {humidity}%, давление ~{pressure_to_mm(pressure)} мм рт. ст."
-        case "json":
-            return {
-                "name": name,
-                "weather_description": weather_description,
-                "temp": temp,
-                "temp_feel": temp_feel,
-                "humidity": humidity,
-                "pressure": pressure,
-                "wind_speed": wind_speed,
-                "wind_degree": wind_degree,
-            }
+    if format == "txt":
+        return f"{name} - сейчас {weather_description}. Температура {round(temp)}°C (по ощущению {round(temp_feel)}°C). Ветер - {wind_degrees_to_direction(wind_degree)}, {wind_speed} м/с. Влажность - {humidity}%, давление ~{pressure_to_mm(pressure)} мм рт. ст."
+    elif format == "json":
+        return {
+            "name": name,
+            "weather_description": weather_description,
+            "temp": temp,
+            "temp_feel": temp_feel,
+            "humidity": humidity,
+            "pressure": pressure,
+            "wind_speed": wind_speed,
+            "wind_degree": wind_degree,
+        }
 
 
 def wind_degrees_to_direction(degrees):
