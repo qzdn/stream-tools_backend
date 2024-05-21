@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "twitch-tools-backend-fastapi"
+version = "0.1.0"
+description = ""
+authors = ["qzdn <6467022+qzdn@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.111.0"
+uvicorn = { extras = ["default"], version = "^0.29.0" }
+requests = "^2.32.1"
+python-dotenv = "^1.0.1"
+howlongtobeatpy = "^1.0.5"
+pymongo = {extras = ["srv"], version = "^4.7.2"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
