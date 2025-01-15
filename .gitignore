@@ -1,3 +1,7 @@
+# WIP
+api/services/gamefaqs.py
+api/config.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

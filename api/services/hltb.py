@@ -2,62 +2,45 @@ import urllib.parse
 from howlongtobeatpy import HowLongToBeat
 
 
-def search_with_gamename(results_list, format):
-    match = max(results_list, key=lambda element: element.similarity)
-    match (format):
-        case "txt":
-            return f"{match.game_name} ({match.release_world}) :: Main story - {match.main_story} ч., Main+Extras - {match.main_extra} ч., Completionist - {match.completionist} ч. :: https://howlongtobeat.com/game/{match.game_id}"
-        case "json":
-            return {
-                "game": {
-                    "game_name": match.game_name,
-                    "release_world": match.release_world,
-                    "main_story": match.main_story,
-                    "main_extra": match.main_extra,
-                    "completionist": match.completionist,
-                    "url": f"https://howlongtobeat.com/game/{match.game_id}",
-                }
-            }
+def get_hltb_data(gamename):
+    gamename = urllib.parse.unquote_plus(gamename)
+
+    # Если год указан (doom**1993)
+    if "**" in gamename:
+        game, year = gamename.split("**")
+        return _get_game_info_by_year(game, int(year))
+
+    # Без года
+    return _get_game_info(gamename)
 
 
-def search_with_specified_year(game_name, year, format, results_list):
-    for result in results_list:
-        if result.release_world == int(year):
-            match (format):
-                case "txt":
-                    return f"{result.game_name} ({result.release_world}) :: Main story - {result.main_story} ч., Main+Extras - {result.main_extra} ч., Completionist - {result.completionist} ч. :: https://howlongtobeat.com/game/{result.game_id}"
-                case "json":
-                    return {
-                        "game": {
-                            "game_name": result.game_name,
-                            "release_world": result.release_world,
-                            "main_story": result.main_story,
-                            "main_extra": result.main_extra,
-                            "completionist": result.completionist,
-                            "url": f"https://howlongtobeat.com/game/{result.game_id}",
-                        }
-                    }
-    else:
-        match (format):
-            case "txt":
-                return f"Игра {game_name} {year} не найдена"
-            case "json":
-                return {"message": f"Игра {game_name} {year} не найдена"}
+def _get_game_info(gamename):
+    search_list = HowLongToBeat().search(gamename, similarity_case_sensitive=False)
+    if not search_list:
+        return {"message": f"Игра {gamename} не найдена"}
+
+    match = max(search_list, key=lambda element: element.similarity)
+    return _format_game_info(match)
 
 
-def request_to_hltb(game_name, year, format):
-    # vercel workaround
-    game_name = urllib.parse.unquote_plus(game_name)
+def _get_game_info_by_year(game, year):
+    search_list = HowLongToBeat().search(game, similarity_case_sensitive=False)
+    if not search_list:
+        return {"message": f"Игра {game} {year} не найдена"}
 
-    results_list = HowLongToBeat().search(game_name, similarity_case_sensitive=False)
-    if results_list is None or len(results_list) == 0:
-        match (format):
-            case "txt":
-                return f"Игра {game_name} не найдена"
-            case "json":
-                return {"message": f"Игра {game_name} не найдена"}
+    for data in search_list:
+        if data.release_world == year:
+            return _format_game_info(data)
 
-    if year:
-        return search_with_specified_year(game_name, year, format, results_list)
+    return {"message": f"Игра {game} {year} не найдена"}
 
-    return search_with_gamename(results_list, format)
+
+def _format_game_info(data):
+    return {
+        "game_name": data.game_name,
+        "release_world": data.release_world,
+        "main_story": data.main_story,
+        "main_extra": data.main_extra,
+        "completionist": data.completionist,
+        "url": f"https://howlongtobeat.com/game/{data.game_id}",
+    }

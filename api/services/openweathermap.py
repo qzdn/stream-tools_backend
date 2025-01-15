@@ -1,50 +1,45 @@
 import requests
-from datetime import datetime
+from api.config import OWM_API_URL, OWM_API_KEY
 
 
-def request_to_openweathermap(city, api_key):
-    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric&lang=ru"
-    response = requests.get(url)
-    return response.json()
+def get_weather_data(city):
+    params = {"q": city, "appid": OWM_API_KEY, "units": "metric", "lang": "ru"}
+    response = requests.get(OWM_API_URL, params=params)
+
+    if response.status_code != 200:
+        return {"error": response.json()["message"]}
+
+    data = response.json()
+    try:
+        result = {
+            "name": data["name"],
+            "weather_description": data["weather"][0]["description"],
+            "temp": data["main"]["temp"],
+            "temp_feel": data["main"]["feels_like"],
+            "wind_deg": data["wind"]["deg"],
+            "wind_direction": _wind_degrees_to_direction(data["wind"]["deg"]),
+            "wind_speed": data["wind"]["speed"],
+            "humidity": data["main"]["humidity"],
+            "pressure": data["main"]["pressure"],
+            "pressure_mm": _pressure_to_mm(data["main"]["pressure"]),
+        }
+    except KeyError:
+        result = {"error": "Ошибка при парсинге данных"}
+
+    return result
 
 
-def get_weather_data(format, data):
-    name = data["name"]
-    weather_description = data["weather"][0]["description"]
-    temp = data["main"]["temp"]
-    temp_feel = data["main"]["feels_like"]
-    wind_degree = data["wind"]["deg"]
-    wind_speed = data["wind"]["speed"]
-    humidity = data["main"]["humidity"]
-    pressure = data["main"]["pressure"]
-
-    match (format):
-        case "txt":
-            return f"{name} - сейчас {weather_description}. Температура {round(temp)}°C (по ощущению {round(temp_feel)}°C). Ветер - {wind_degrees_to_direction(wind_degree)}, {wind_speed} м/с. Влажность - {humidity}%, давление ~{pressure_to_mm(pressure)} мм рт. ст."
-        case "json":
-            return {
-                "name": name,
-                "weather_description": weather_description,
-                "temp": temp,
-                "temp_feel": temp_feel,
-                "humidity": humidity,
-                "pressure": pressure,
-                "wind_speed": wind_speed,
-                "wind_degree": wind_degree,
-            }
-
-
-def wind_degrees_to_direction(degrees):
-    # https://en.wikipedia.org/wiki/Compass_rose
+def _wind_degrees_to_direction(degrees):
     directions = ["С", "СВ", "В", "ЮВ", "Ю", "ЮЗ", "З", "СЗ"]
-    index = int((degrees + 22.5) // 45 % 8)
-    return directions[index]
+    try:
+        index = int((degrees + 22.5) // 45 % 8)
+        return directions[index]
+    except (TypeError, ValueError):
+        return "неизвестно"
 
 
-# hPa to mm of mercury
-def pressure_to_mm(pressure):
-    return round(pressure / 1.333, 1)
-
-
-def timestamp_to_date(timestamp):
-    return datetime.fromtimestamp(timestamp)
+def _pressure_to_mm(pressure):
+    try:
+        return round(pressure / 1.333, 1)
+    except (TypeError, ZeroDivisionError):
+        return "неизвестно"

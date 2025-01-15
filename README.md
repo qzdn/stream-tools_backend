@@ -1,32 +1,21 @@
 # Twitch tools backend
 
-Backend for my personal Twitch tools like various APIs fetch, song requests and more. This project is designed to gain hands-on experience with Python, APIs, and backend development in general. Prepared for deploying to [Vercel](https://vercel.com).
+Backend for my personal Twitch tools like various APIs fetch, song requests and more. This project is designed to gain hands-on experience with Python, APIs, and backend development in general.
 
-## How to run it locally?
+## How to run?
 
-```
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-mv ./.env.example ./.env
-python ./run.py
-```
-
-```
-${customapi.https://PROJECT.vercel.app/lastfm/USERNAME_HERE}
-${customapi.https://PROJECT.vercel.app/weather/${1:}}
-${customapi.https://PROJECT.vercel.app/hltb/${1:}}
+```sh
+$ cp ./api/config_example.py ./api/config.py
+$ python -m venv .venv
+$ source ./.venv/bin/activate
+$ pip install -r requirements.txt
+$ python ./run.py
 ```
 
-## TODO:
+## Custom command in StreamElements
 
-- [x] Last.fm - "Scrobbling now" info
-- [x] OpenWeatherMap - Current weather
-- [x] HLTB - Game length info
-- [ ] Steam - Prices, user info...
-
-etc.:
-
-- [ ] Docker image
-- [ ] Stuff for song requests
-- [ ] TBD
+```
+${customapi.https://PROJECT.vercel.app/lastfm?username=USERNAME}
+${customapi.https://PROJECT.vercel.app/weather?city=$(1:)}
+${customapi.https://PROJECT.vercel.app/hltb?gamename=$(1:)}
+```
